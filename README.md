@@ -30,6 +30,20 @@ nmap <Leader>i  <Plug>(operator-insert-i)
 nmap <Leader>a  <Plug>(operator-insert-a)
 ```
 
+Screenshot
+---
+
+Following screenshot is example for insert tail of word to type `<Leader>ae`,
+and for insert head of word to type `<Leader>ib`.
+
+![screenshot1](http://gifzo.net/44Em4K1s3t.gif)
+
+
+Following screenshot is example for insert tail of inner parentheses to type `<Leader>aib`,
+and for insert head of inner parentheses to type `<Leader>iib`.
+
+![screenshot2](http://gifzo.net/wx0z7ETHpM.gif)
+
 License
 ---
 
