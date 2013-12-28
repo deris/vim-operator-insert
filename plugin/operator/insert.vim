@@ -1,4 +1,4 @@
-" operator-insert - 
+" operator-insert - operator-user for insert
 " Version: 0.1.0
 " Copyright (C) 2013 deris0126
 " License: MIT license  {{{
