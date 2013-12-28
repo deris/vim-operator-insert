@@ -25,7 +25,7 @@
 if exists('g:loaded_operator_insert')
   finish
 endif
-let g:loaded_operator-i_insert = 1
+let g:loaded_operator_insert = 1
 
 let s:save_cpo = &cpo
 set cpo&vim
