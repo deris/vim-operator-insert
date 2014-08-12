@@ -1,0 +1,85 @@
+*operator-insert.txt*	operator-insert is an operator for inserting to head(or tail) of textobject
+
+Version 0.1.0
+Copyright (C) 2013-2014 deris <deris0126@gmail.com>
+License: MIT license  {{{
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}}}
+
+CONTENTS					*operator-insert-contents*
+
+Introduction		|operator-insert-introduction|
+Interface		|operator-insert-interface|
+  Key Mappings		  |operator-insert-key-mappings|
+Examples		|operator-insert-examples|
+Bugs			|operator-insert-bugs|
+Changelog		|operator-insert-changelog|
+
+
+==============================================================================
+INTRODUCTION					*operator-insert-introduction*
+
+operator-insert is an operator for inserting to
+head(or tail) of textobject.
+
+
+Requirements:
+- Vim 7 or later
+
+Latest version:
+https://github.com/deris/vim-operator-insert
+
+
+==============================================================================
+INTERFACE					*operator-insert-interface*
+
+------------------------------------------------------------------------------
+MAPPINGS					*operator-insert-mappings*
+
+<Plug>(operator-insert-i)			*<Plug>(operator-insert-i)*
+<Plug>(operator-insert-a)			*<Plug>(operator-insert-a)*
+			These mappings are defined in Normal mode, Visual mode
+			and Operator-pending mode.
+
+
+==============================================================================
+EXAMPLES					*operator-insert-examples*
+
+" By default, no mapping is set, so you must map key like following at first.
+nmap <Leader>i  <Plug>(operator-insert-i)
+nmap <Leader>a  <Plug>(operator-insert-a)
+
+
+==============================================================================
+BUGS						*operator-insert-bugs*
+
+- Currently, there is no known issue.
+
+
+==============================================================================
+CHANGELOG					*operator-insert-changelog*
+
+0.1.0	2013-12-28
+- First Version.
+
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:fen:fdl=0:fdm=marker:
+

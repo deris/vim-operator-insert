@@ -1,6 +1,6 @@
-" operator-insert - operator-user for insert
+" operator-insert - operator-insert is an operator for inserting to head(or tail) of textobject
 " Version: 0.1.0
-" Copyright (C) 2013 deris0126
+" Copyright (C) 2013-2014 deris0126
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
 "     a copy of this software and associated documentation files (the
