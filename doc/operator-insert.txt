@@ -36,8 +36,63 @@ Changelog		|operator-insert-changelog|
 ==============================================================================
 INTRODUCTION					*operator-insert-introduction*
 
-operator-insert is an operator for inserting to
-head(or tail) of textobject.
+*operator-insert* is an operator for inserting to head(or tail) of textobject.
+
+This operator works differently with character-wise, line-wise, block-wise
+selection areas.
+
+Character-wise~
+The operator may work as you expect, that is, inserting text to head or tail
+of selection areas.
+
+Line-wise~
+Inserting texts in front of the first non-whitespace characters or just after
+the last character in the lines. If empty lines are included in the range,
+texts are inserted to the beginnings of the lines.
+
+Before:
+>
+	foo
+		bar
+	
+	baz
+<
+
+After:
+>
+	(Insertion)foo
+		(Insertion)bar
+	(Insertion)
+	(Insertion)baz
+<
+
+Block-wise~
+Inserting texts almost as you expect, but do not insert to the lines shorter
+than the current cursor column. Look the following example.
+
+>
+	foo
+	bar
+	
+	baz
+<
+
+Select block-wise the second column and insert texts. Then you will get:
+>
+	f(Insertion)oo
+	b(Insertion)ar
+	
+	b(Insertion)az
+<
+Since the third line is shorter than the head column of the selection, the
+insertion is not inserted.
+
+These behavior might not be different from all your expectations, but it is
+useful enough |v_b_I| and |v_b_A| for the purpose, I guess.
+------------------------------------------------------------------------------
+Note that inserted texts can not include line-breaks. They will be removed
+before inserting a text.
+
 
 
 Requirements:
@@ -45,8 +100,6 @@ Requirements:
 
 Latest version:
 https://github.com/deris/vim-operator-insert
-
-
 ==============================================================================
 INTERFACE					*operator-insert-interface*
 
@@ -55,14 +108,14 @@ MAPPINGS					*operator-insert-mappings*
 
 <Plug>(operator-insert-i)			*<Plug>(operator-insert-i)*
 <Plug>(operator-insert-a)			*<Plug>(operator-insert-a)*
-			These mappings are defined in Normal mode, Visual mode
-			and Operator-pending mode.
+			These mappings are defined in Normal mode and Visual
+			mode.
 
 
 ==============================================================================
 EXAMPLES					*operator-insert-examples*
 
-" By default, no mapping is set, so you must map key like following at first.
+By default, no mapping is set, so you must map key like following at first.
 nmap <Leader>i  <Plug>(operator-insert-i)
 nmap <Leader>a  <Plug>(operator-insert-a)
 
