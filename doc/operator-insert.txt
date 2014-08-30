@@ -38,14 +38,14 @@ Changelog		|operator-insert-changelog|
 ==============================================================================
 INTRODUCTION					*operator-insert-introduction*
 
-*operator-insert* is an operator for inserting to head(or tail) of textobject.
+*operator-insert* are operators for inserting to head(or tail) of textobject.
 
-This operator works differently with character-wise, line-wise, block-wise
+Thiese operators work differently with character-wise, line-wise, block-wise
 selection areas.
 
 Character-wise~
-The operator may work as you expect, that is, inserting text to head or tail
-of selection areas.
+These operators may work as you expect, that is, inserting text to head or
+tail of selection areas.
 
 Line-wise~
 Inserting texts in front of the first non-whitespace characters or just after
@@ -99,11 +99,10 @@ Note that inserted texts can not include line-breaks. They will be removed
 before inserting a text.
 
 ------------------------------------------------------------------------------
-These operators support |single-repeat| by dot |.| command. However the
-behavior would not be what you want when you use it with |gn| and |gN|. In
-that case try |<Plug>(gn-for-operator-insert-i)| and
-|<Plug>(gN-for-operator-insert-a)|, they might be helpful. Please take a look
-|operator-insert-examples|.
+The operators support |single-repeat| by dot |.| command. However the behavior
+would not be what you want when you use it with |gn| and |gN|. In that case
+try |<Plug>(gn-for-operator-insert-i)| and |<Plug>(gN-for-operator-insert-a)|,
+they might be helpful. Please take a look |operator-insert-examples|.
 
 
 
@@ -133,7 +132,7 @@ MAPPINGS					*operator-insert-mappings*
 CUSTOMIZATION				*operator-insert-customization*
 
 The completion in a insertion input~	*g:operator#insert#completefunc*
-The operator has a simple buffer completion function in the input mode of
+The operators have a simple buffer completion function in the input mode of
 insertion. It gathers words consisting of more than three characters from
 visible range of lines. If you do not need this function, then please set
 |g:operator#insert#completefunc| as an empty string in your vimrc:
@@ -160,6 +159,49 @@ vimrc.
 	let g:operator#insert#textobj#open_fold = 0
 <
 Opened foldings are automatically closed if an action is cancelled.
+
+
+
+					*g:operator#insert#dummycursor*
+Change the highlight coloring of dummy cursors~
+The operators put dummy cursors to highlight the positions which would be
+inserted texts. You can change the coloring of the dummy cursors with this
+option. If you set the name of an existing highlight group, then the coloring
+is linked to that group.
+>
+	let g:operator#insert#dummycursor = 'Cursor'
+<
+Or you could pass the dictionary variable which contains the information for
+highlight. It could have keys named as following highlight arguments. Other
+keys would be ignored.
+
+	term		|highlight-term|
+	cterm		|highlight-cterm|
+	ctermfg		|highlight-ctermfg|
+	ctermbg		|highlight-ctermbg|
+	gui		|highlight-gui|
+	guifg		|highlight-guifg|
+	guibg		|highlight-guibg|
+	guisp		|highlight-guisp|
+
+Their values should be correspondent attributes or colors, available
+values are described at |syntax|. For example:
+>
+	let g:operator#insert#dummycursor = {
+		\	'ctermfg': '15',
+		\	'ctermbg': '0',
+		\	'guifg': '#ffffff'
+		\	'guibg': '#000000'
+		\	}
+<
+If you do not prefer the dummy cursor highlighting, please set the value as
+an empty string.
+>
+	let g:operator#insert#dummycursor = ''
+<
+
+
+
 
 ==============================================================================
 EXAMPLES					*operator-insert-examples*
@@ -216,6 +258,11 @@ BUGS						*operator-insert-bugs*
 - Embedding the special keys <BS>, <C-h>, <C-w>, <C-d>, <C-t> is not
   prohibited. However it may cause some problem to the behaviors of the
   auxiliary textobjects.
+
+- The dummy cursor function can not highlight empty lines.
+
+- The dummy cursor might be displayed weird if there is an tab character or
+  a multi-byte character.
 
 
 ==============================================================================

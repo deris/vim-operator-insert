@@ -119,16 +119,25 @@ function! s:operator_insert_origin(ai, motion_wise)
     return
   endif
 
+  let state = s:get_info('state')
+
+  " highlight dummy cursor
+  if !state
+    let id = s:dummy_cursor_add(a:ai, a:motion_wise)
+  endif
+
   " determine a insertion
-  let insertion = s:get_info('state') == 0
+  let insertion = state == 0
         \  ? substitute(input("Insertion: ", "", g:operator#insert#completefunc), "\n", "", 'g')
         \  : s:get_info('last_insertion')
 
-  " clear highlights
-  let id = s:get_info('highlight')
-  if id != []
-    call s:highliht_clear(id)
-    call s:set_info('highlight', [])
+  " clear all highlights
+  if !state
+    let id += s:get_info('highlight')
+    if id != []
+      call s:highliht_clear(id)
+      call s:set_info('highlight', [])
+    endif
   endif
 
   if insertion != ''
@@ -276,10 +285,6 @@ function! s:fold_closer()
   endfor
 endfunction
 
-function! s:highliht_clear(id_list)
-  call map(a:id_list, 'matchdelete(v:val)')
-endfunction
-
 
 
 " History and state management
@@ -363,6 +368,55 @@ function! s:call_autocmd(name)
   endif
 endfunction
 
+
+
+" Put dummy cursor(s) by using highlight
+function! s:dummy_cursor_add(ai, motion_wise)
+  if a:motion_wise ==# 'char'
+    if a:ai ==# 'i'
+      let lnum = line("'[")
+      let col  = col("'[")
+    else
+      let lnum = line("']")
+      let col  = col("']")
+    endif
+
+    if v:version > 704 || v:version == 704 && has('patch343')
+      let id = [matchaddpos("OperatorInsertDummyCursor", [[lnum, col]])]
+    else
+      let id = [matchadd("OperatorInsertDummyCursor", printf('\%%%sl\%%%sc.', lnum, col))]
+    endif
+  elseif a:motion_wise ==# 'line'
+    if a:ai ==# 'i'
+      let id = map(range(line("'["), line("']")), 'matchadd("OperatorInsertDummyCursor", printf(''\%%%sl\%%%sc.'', v:val, match(getline(v:val), ''^\s*\zs.'') <= 0 ? 1 : match(getline(v:val), ''^\s*\zs.'') + 1))')
+    else
+      let id = map(range(line("'["), line("']")), 'matchadd("OperatorInsertDummyCursor", printf(''\%%%sl\%%%sc.'', v:val, match(getline(v:val), ''$'') <= 0 ? 1 : match(getline(v:val), ''$'')))')
+    endif
+  else
+    let head = line("'[")
+    let tail = line("']")
+
+    if a:ai ==# 'i'
+      let col = col("'[")
+    else
+      let col = col("']")
+    endif
+
+    if (v:version > 704 || v:version == 704 && has('patch343')) && tail - head < 8
+      let id = map(range(line("'["), line("']")), 'matchaddpos("OperatorInsertDummyCursor", [[v:val, col]])')
+    else
+      let id = map(range(line("'["), line("']")), 'matchadd("OperatorInsertDummyCursor", printf(''\%%%sl\%%%sc.'', v:val, col))')
+    endif
+  endif
+
+  redraw
+  return id
+endfunction
+
+function! s:highliht_clear(id_list)
+  call map(a:id_list, 'matchdelete(v:val)')
+endfunction
+
 "}}}
 
 " Options {{{1
@@ -370,6 +424,20 @@ endfunction
 " The complete function
 let g:operator#insert#completefunc =
       \ get(g:, 'operator#insert#completefunc', 'custom,operator#insert#complete_from_visible_lines')
+
+" Dummy cursor
+let g:operator#insert#dummycursor =
+      \ get(g:, 'operator#insert#dummycursor', 'Cursor')
+
+if type(g:operator#insert#dummycursor) == type('') && g:operator#insert#dummycursor != ''
+  execute 'highlight link OperatorInsertDummyCursor ' . g:operator#insert#dummycursor
+elseif type(g:operator#insert#dummycursor) == type({})
+  let args = ['term', 'cterm', 'ctermfg', 'ctermbg',
+        \     'gui', 'guifg', 'guibg', 'guisp']
+  " I never look back
+  execute printf('highlight OperatorInsertDummyCursor %s', join(values(map(filter(copy(g:operator#insert#dummycursor), printf("v:key =~# '\%%(%s\)'", join(args, '\|'))), 'printf("%s=%s", v:key, v:val)')), ' '))
+  unlet args
+endif
 
 "}}}
 
