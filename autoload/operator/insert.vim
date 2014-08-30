@@ -35,6 +35,21 @@ function! operator#insert#insert_a(motion_wise)
   return s:operator_insert_origin('a', a:motion_wise)
 endfunction
 
+
+
+" The variable to stop execution.
+" When s:is_active is 0, do not execute action.
+" Currently it is used only by auxiliary textobjects.
+let s:is_active = 1
+
+function! operator#insert#deactivate()
+  let s:is_active = 0
+endfunction
+
+function! operator#insert#activate()
+  let s:is_active = 1
+endfunction
+
 "}}}
 
 " Public, but it is *not* recommended to be used by users. {{{1
@@ -42,38 +57,123 @@ endfunction
 " Set state to ground state. It is used when keymappings are triggered.
 function! operator#insert#ground_state()
   call s:set_info('state', 0)
+
+  " kill quencher
+  augroup operator-insert
+    autocmd!
+  augroup END
+endfunction
+
+" To bring script-local functions safely as possible
+function! operator#insert#funcref_mediator(list)
+  let funcrefs = []
+  for name in a:list
+    let funcrefs += [function('s:' . name)]
+  endfor
+  return funcrefs
 endfunction
 
 "}}}
 
 " Private {{{1
 
+" The definition of null position and region
+let s:null_pos    = [0, 0]
+let s:null_region = [s:null_pos, s:null_pos]
+
+" The original of each operator
 function! s:operator_insert_origin(ai, motion_wise)
+  " if s:is_active is 0, then quit immediately
+  if !s:is_active
+    call s:set_info('state', 1)
+    call operator#insert#activate()
+    return
+  endif
+
   " determine a insertion
   let insertion = s:get_info('state') == 0
         \  ? substitute(input("Insertion: ", ""), "\n", "", 'g')
         \  : s:get_info('last_insertion')
 
+  " clear highlights
+  let id = s:get_info('highlight')
+  if id != []
+    call s:highliht_clear(id)
+    call s:set_info('highlight', [])
+  endif
+
   if insertion != ''
     " execute an action
     call s:call_autocmd('OperatorInsertInsertPre')
-    call s:insert_{a:motion_wise}wise(a:ai, insertion)
+    let last_target = s:insert_{a:motion_wise}wise(a:ai, insertion)
     call s:call_autocmd('OperatorInsertInsertPost')
+
+    " save the region of the last target textobject
+    call s:set_info('last_target', last_target)
 
     " save history
     call s:set_info('last_insertion', insertion)
+
+    " excite to the super-excited state
+    call s:set_info('state', 2)
+
+    " reserve quencher (to the first excited state)
+    augroup operator-insert
+      autocmd!
+      autocmd TextChanged <buffer> autocmd operator-insert InsertEnter,CursorMoved,TextChanged,WinLeave,FileChangedShellPost <buffer> call s:quench_state()
+    augroup END
+  else
+    " restore view
+    call winrestview(s:get_info('view'))
+
+    " close foldings and clear opened_fold
+    call s:fold_closer()
+    call s:set_info('opened_fold', [])
+
+    " excite to the first excited state
+    call s:set_info('state', 1)
   endif
 
-  " excite state
-  call s:set_info('state', 1)
+  " restore visual area marks
+  " This is quite clean and it is impossible for user defined textobjects to
+  " do such a post-processing without cooperation between a operator and a
+  " textobject. However it is still not perfect, because after an undo, marks
+  " are restored as the textobject has selected.
+  let [lt, gt] = s:get_info('visualmarks')
+  if lt != s:null_pos && gt != s:null_pos
+    call setpos("'<", lt)
+    call setpos("'>", gt)
+    call s:set_info('visualmarks', s:null_region)
+  endif
 endfunction
 
 function! s:insert_charwise(ai, insertion)
+  " memorize the position of target text
+  let head_before = getpos("'[")[1:2]
+  let tail_before = getpos("']")[1:2]
+
   if a:ai ==# 'i'
     execute "normal! `[i" . a:insertion
+
+    " calculate the position of shifted target region
+    if head_before[0] == tail_before[0]
+      " the target text does not include any line-breaking
+      let head_after = [line('.'), col('.') + 1]
+      let tail_after = [line('.'), col('.') + tail_before[1] - head_before[1] + 1]
+    else
+      " the target text consists of several lines
+      let head_after = [line('.'), col('.') + 1]
+      let tail_after = tail_before
+    endif
+    let region = [head_after, tail_after]
   else
+    " record the region of target text
+    let region = [head_before, tail_before]
+
     execute "normal! `]a" . a:insertion
   endif
+
+  return region
 endfunction
 
 function! s:insert_linewise(ai, insertion)
@@ -89,6 +189,9 @@ function! s:insert_linewise(ai, insertion)
   " set marks as wrapping whole lines
   call setpos("'[", [0, head, 0, 0])
   call setpos("']", [0, tail, col([tail, '$']), 0])
+
+  " not required to store the target region in a linewise action
+  return s:null_region
 endfunction
 
 function! s:insert_blockwise(ai, insertion)
@@ -126,11 +229,26 @@ function! s:insert_blockwise(ai, insertion)
     endfor
   endif
 
-  " set marks for the topleft and bottomright edge of the processed lines
+  " set marks for the topleft and bottomright edge of the processed region
   if processed != []
     call setpos("'[", [0, processed[0], col("'["), 0])
     call setpos("']", [0, processed[-1], col("']") - 1, 0])
   endif
+
+  " not required to store the target region in a blocwise action
+  return s:null_region
+endfunction
+
+function! s:fold_closer()
+  let opened_fold = s:get_info('opened_fold')
+
+  for lnum in reverse(opened_fold)
+    execute lnum . 'foldclose'
+  endfor
+endfunction
+
+function! s:highliht_clear(id_list)
+  call map(a:id_list, 'matchdelete(v:val)')
 endfunction
 
 
@@ -141,28 +259,66 @@ endfunction
 " are three keys, 'state', 'last_insertion', and, 'last_target'.
 
 " The 'state' keeps managed to distinguish whether the operatorfunc was called
-" by a keymapping or by the dot command.
-" get_state() == 0 : called by a keymapping
-" get_state() == 1 : called by the dot command
+" by a keymapping or by the dot command. There are two excited states for
+" dot-repeat callings. If it is called just after a keymapping action, then it
+" is 'hot' calling. Otherwise it is regarded as 'cold' calling. 'Hot' calling
+" changes the behavior of auxiliary textobjects, it would skip the closest
+" searched word if necessary. After an action, the state is immediately cool
+" down to the first excited state (s:get_info('state') == 1) if the next
+" action is not the dot-repeat.
+" s:get_info('state') == 0 : called by a keymapping
+" s:get_info('state') == 1 : called by the dot command (cold-calling)
+" s:get_info('state') == 2 : called by the dot command (hot-calling)
 
 " The 'last_insertion' is stored for dot-repeat.
 
 function! s:get_info(name)
   if !exists('b:operator_insert_info')
+    " initialization
     let b:operator_insert_info = {}
     let b:operator_insert_info.state = 0
     let b:operator_insert_info.last_insertion = ''
+    let b:operator_insert_info.last_target = s:null_region
+    let b:operator_insert_info.view = {}
+    let b:operator_insert_info.opened_fold = []
+    let b:operator_insert_info.highlight = []
+    let b:operator_insert_info.visualmarks = s:null_region
   endif
   return b:operator_insert_info[a:name]
 endfunction
 
+" NOTE: s:set_info() and s:add_info should be called only in the function
+"       s:operator_insert_origin except for the case of 'state' key as
+"       possible. Otherwise it is really easy to mess up.
 function! s:set_info(name, value)
   if !exists('b:operator_insert_info')
-    let b:operator_insert_info = {}
-    let b:operator_insert_info.state = 0
-    let b:operator_insert_info.last_insertion = ''
+    " initialization
+    call s:get_info('state')
   endif
   let b:operator_insert_info[a:name] = a:value
+endfunction
+
+function! s:add_info(name, value)
+  if !exists('b:operator_insert_info')
+    " initialization
+    call s:get_info('state')
+  endif
+
+  if a:name ==# 'opened_fold' || a:name ==# 'highlight'
+    let b:operator_insert_info[a:name] += a:value
+  endif
+endfunction
+
+" It is used for quenching the state from the super-excited state to the first
+" excited state. This transition switches off the skipping behavior of
+" auxiliary textobjects.
+function! s:quench_state()
+  call s:set_info('state', 1)
+
+  " kill quencher
+  augroup operator-insert
+    autocmd!
+  augroup END
 endfunction
 
 

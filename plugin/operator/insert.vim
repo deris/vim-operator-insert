@@ -34,6 +34,9 @@ set cpo&vim
 call operator#user#define('insert-i', 'operator#insert#insert_i', 'call operator#insert#ground_state()')
 call operator#user#define('insert-a', 'operator#insert#insert_a', 'call operator#insert#ground_state()')
 
+onoremap <silent><expr> <Plug>(gn-for-operator-insert-i) operator#insert#textobj#gn_for_operator_insert_i()
+onoremap <silent><expr> <Plug>(gN-for-operator-insert-a) operator#insert#textobj#gN_for_operator_insert_a()
+
 
 let &cpo = s:save_cpo
 unlet s:save_cpo
