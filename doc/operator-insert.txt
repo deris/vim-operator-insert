@@ -132,6 +132,22 @@ MAPPINGS					*operator-insert-mappings*
 ------------------------------------------------------------------------------
 CUSTOMIZATION				*operator-insert-customization*
 
+The completion in a insertion input~	*g:operator#insert#completefunc*
+The operator has a simple buffer completion function in the input mode of
+insertion. It gathers words consisting of more than three characters from
+visible range of lines. If you do not need this function, then please set
+|g:operator#insert#completefunc| as an empty string in your vimrc:
+>
+	let g:operator#insert#completefunc = ''
+<
+
+If you want to customize the completion, please see |:command-completion| and
+|:command-completion-custom|.
+
+The default value is "custom,operator#insert#complete_from_visible_lines".
+
+
+
 					*g:operator#insert#textobj#open_fold*
 Manage the behavior when the target textobject is inside foldings~
 This option changes the behavior of auxiliary textobjects,
@@ -165,8 +181,7 @@ or, if you do not care to overwrite them, just like this:
 nmap gn <Plug>(gn-for-operator-insert-i)
 nmap gN <Plug>(gN-for-operator-insert-a)
 
-These mappings are safely replace the function of |gn| and |gN|. This should
-still be OK.
+These mappings are safely replace the function of |gn| and |gN| as possible.
 
 Because of the position of cursor after an action, these operators repeatedly
 insert texts for the same target even when they are used with |gn| and |gN|.

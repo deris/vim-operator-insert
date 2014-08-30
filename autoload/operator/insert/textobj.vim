@@ -61,7 +61,7 @@ let [s:get_info, s:set_info, s:add_info]
 "       After that, never called these functions, just the original 'gn' (or
 "       gN) works as usual. If I do not use <expr>, then the same function is
 "       always called in each 'gn' (or 'gN') key presses, and there would be a
-"       irritating and indelible echoing at command-line.
+"       irritating and unsuppressable echoing at command-line.
 "
 " NOTE: If they are called in 'hot' state, they will try to search the next
 "       target textobject (it is different from the one which is processed a

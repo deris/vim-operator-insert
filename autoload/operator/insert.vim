@@ -50,6 +50,35 @@ function! operator#insert#activate()
   let s:is_active = 1
 endfunction
 
+
+
+" The simple buffer complete function.
+function! operator#insert#complete_from_visible_lines(ArgLead, CmdLine, CursorPos)
+  let lines = getline(line('w0'), line('w$'))
+
+  " gather words ('\<\k\{3,}\>')
+  let words = []
+  for line in lines
+    let start = 0
+    while 1
+      let words += [matchstr(line, '\<\k\{3,}\>', start)]
+      let start  =  matchend(line, '\<\k\{3,}\>', start)
+      if start < 0 | break | endif
+    endwhile
+  endfor
+
+  " uniquify
+  let candidates = []
+  call filter(words, 'v:val != ""')
+  for word in words
+    if !count(candidates, word)
+      let candidates += [word]
+    endif
+  endfor
+
+  return join(candidates, "\n")
+endfunction
+
 "}}}
 
 " Public, but it is *not* recommended to be used by users. {{{1
@@ -92,7 +121,7 @@ function! s:operator_insert_origin(ai, motion_wise)
 
   " determine a insertion
   let insertion = s:get_info('state') == 0
-        \  ? substitute(input("Insertion: ", ""), "\n", "", 'g')
+        \  ? substitute(input("Insertion: ", "", g:operator#insert#completefunc), "\n", "", 'g')
         \  : s:get_info('last_insertion')
 
   " clear highlights
@@ -333,6 +362,14 @@ function! s:call_autocmd(name)
     execute 'doautocmd <nomodeline> ' . a:name
   endif
 endfunction
+
+"}}}
+
+" Options {{{1
+
+" The complete function
+let g:operator#insert#completefunc =
+      \ get(g:, 'operator#insert#completefunc', 'custom,operator#insert#complete_from_visible_lines')
 
 "}}}
 
