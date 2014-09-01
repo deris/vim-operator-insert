@@ -97,7 +97,7 @@ let [s:get_info, s:set_info, s:add_info]
 " NOTE: If the searched word can not be found in 'cold' calling, the 'gn'
 "       (or 'gN') command in s:operator_range_capture can not find the target
 "       and s:operator_range_capture is cancelled. As a result,
-"       s:range_capturer will return s:null_region and textobjects will decide
+"       s:capture_range will return s:null_region and textobjects will decide
 "       to cancel the operator. (This is because 'gn' and 'gN' command do not
 "       issue any exception like vim error 482 even if the searched word can
 "       not be found.)
@@ -138,13 +138,13 @@ function! s:executer(ai, count, textobj, next)
     let last_target = s:get_info('last_target')
     try
       for i in [1, 2]
-        let target = s:range_capturer(1, a:textobj)
+        let target = s:capture_range(1, a:textobj)
         " FIXME: Am I sure that this is the appropriate condition?
         if target != last_target | break | endif
         execute "normal! " . a:next
       endfor
 
-      let target = s:range_capturer(l:count, a:textobj)
+      let target = s:capture_range(l:count, a:textobj)
       let [head, tail] = target
     catch /^Vim\%((\a\+)\)\=:E\%(384\|385\|486\)/
       call s:error_handling_no_target(view, lt, gt)
@@ -152,12 +152,12 @@ function! s:executer(ai, count, textobj, next)
     endtry
   else
     " Keymapping calling or 'cold' calling. Work as usual.
-    let [head, tail] = s:range_capturer(l:count, a:textobj)
+    let [head, tail] = s:capture_range(l:count, a:textobj)
   endif
 
   if head != s:null_pos && tail != s:null_pos
     " open foldings
-    let opened_fold = s:fold_opener(head, tail)
+    let opened_fold = s:open_fold(head, tail)
 
     " highlight target if it is called from keymappings (i.e. not dot-repeat)
     if !state && g:operator#insert#textobj#open_fold
@@ -193,7 +193,7 @@ function! s:executer(ai, count, textobj, next)
   endif
 endfunction
 
-function! s:range_capturer(count, textobj)
+function! s:capture_range(count, textobj)
   let s:range = s:null_region
   let operatorfunc  = &operatorfunc
   let &operatorfunc = '<SID>operator_range_capture'
@@ -226,7 +226,7 @@ function! s:error_handling_no_target(view, lt, gt)
   call operator#insert#deactivate()
 endfunction
 
-function! s:fold_opener(head, tail)
+function! s:open_fold(head, tail)
   let opened_fold = []
   for lnum in range(a:head[0], a:tail[0])
     while 1

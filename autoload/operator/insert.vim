@@ -27,27 +27,27 @@ set cpo&vim
 
 " Public API {{{1
 
-function! operator#insert#insert_i(motion_wise)
+function! operator#insert#i(motion_wise)
   return s:operator_insert_origin('i', a:motion_wise)
 endfunction
 
-function! operator#insert#insert_a(motion_wise)
+function! operator#insert#a(motion_wise)
   return s:operator_insert_origin('a', a:motion_wise)
 endfunction
 
 
 
 " The variable to stop execution.
-" When s:is_active is 0, do not execute action.
+" When s:bool_activity is 0, do not execute action.
 " Currently it is used only by auxiliary textobjects.
-let s:is_active = 1
+let s:bool_activity = 1
 
 function! operator#insert#deactivate()
-  let s:is_active = 0
+  let s:bool_activity = 0
 endfunction
 
 function! operator#insert#activate()
-  let s:is_active = 1
+  let s:bool_activity = 1
 endfunction
 
 
@@ -112,8 +112,8 @@ let s:null_region = [s:null_pos, s:null_pos]
 
 " The original of each operator
 function! s:operator_insert_origin(ai, motion_wise)
-  " if s:is_active is 0, then quit immediately
-  if !s:is_active
+  " if it is not active, then quit immediately
+  if !s:is_active()
     call s:set_info('state', 1)
     call operator#insert#activate()
     return
@@ -123,19 +123,19 @@ function! s:operator_insert_origin(ai, motion_wise)
 
   " highlight dummy cursor
   if !state
-    let id = s:dummy_cursor_add(a:ai, a:motion_wise)
+    let id = s:add_dummy_cursor(a:ai, a:motion_wise)
   endif
 
   " determine a insertion
   let insertion = state == 0
-        \  ? substitute(input("Insertion: ", "", g:operator#insert#completefunc), "\n", "", 'g')
+        \  ? input("Insertion: ", "", g:operator#insert#completefunc)
         \  : s:get_info('last_insertion')
 
   " clear all highlights
   if !state
     let id += s:get_info('highlight')
     if id != []
-      call s:highliht_clear(id)
+      call s:clear_highlight(id)
       call s:set_info('highlight', [])
     endif
   endif
@@ -165,7 +165,7 @@ function! s:operator_insert_origin(ai, motion_wise)
     call winrestview(s:get_info('view'))
 
     " close foldings and clear opened_fold
-    call s:fold_closer()
+    call s:close_fold()
     call s:set_info('opened_fold', [])
 
     " excite to the first excited state
@@ -201,7 +201,7 @@ function! s:insert_charwise(ai, insertion)
     else
       " the target text consists of several lines
       let head_after = [line('.'), col('.') + 1]
-      let tail_after = tail_before
+      let tail_after = [line('.') - head_before[0] + tail_before[0], tail_before[1]]
     endif
     let region = [head_after, tail_after]
   else
@@ -219,9 +219,13 @@ function! s:insert_linewise(ai, insertion)
 
   if a:ai ==# 'i'
     " not sure... removing '^' might be more natural...
-    execute "'[,']normal! ^i" . a:insertion
+    for lnum in reverse(range(head, tail))
+      execute printf('%snormal! ^i%s', lnum, a:insertion)
+    endfor
   else
-    execute "'[,']normal! $a" . a:insertion
+    for lnum in reverse(range(head, tail))
+      execute printf('%snormal! $a%s', lnum, a:insertion)
+    endfor
   endif
 
   " set marks as wrapping whole lines
@@ -235,11 +239,11 @@ endfunction
 function! s:insert_blockwise(ai, insertion)
   let processed = []
 
-  if a:ai ==# 'i'
-    " lines: [lnum, length]
-    let lines = map(range(line("'["), line("']")),
-          \           '[v:val, strlen(getline(v:val))]')
+  " lines: [lnum, length]
+  let lines = reverse(map(range(line("'["), line("']")),
+        \               '[v:val, strlen(getline(v:val))]'))
 
+  if a:ai ==# 'i'
     let col   = col("'[")
     for line in lines
       if line[1] >= col
@@ -253,10 +257,6 @@ function! s:insert_blockwise(ai, insertion)
       endif
     endfor
   else
-    " lines: [lnum, length]
-    let lines = map(range(line("'["), line("']")),
-          \           '[v:val, strlen(getline(v:val))]')
-
     let col = col("']")
     for line in lines
       if line[1] >= col
@@ -277,12 +277,16 @@ function! s:insert_blockwise(ai, insertion)
   return s:null_region
 endfunction
 
-function! s:fold_closer()
+function! s:close_fold()
   let opened_fold = s:get_info('opened_fold')
 
   for lnum in reverse(opened_fold)
     execute lnum . 'foldclose'
   endfor
+endfunction
+
+function! s:is_active()
+  return s:bool_activity
 endfunction
 
 
@@ -371,7 +375,7 @@ endfunction
 
 
 " Put dummy cursor(s) by using highlight
-function! s:dummy_cursor_add(ai, motion_wise)
+function! s:add_dummy_cursor(ai, motion_wise)
   if a:motion_wise ==# 'char'
     if a:ai ==# 'i'
       let lnum = line("'[")
@@ -413,7 +417,7 @@ function! s:dummy_cursor_add(ai, motion_wise)
   return id
 endfunction
 
-function! s:highliht_clear(id_list)
+function! s:clear_highlight(id_list)
   call map(a:id_list, 'matchdelete(v:val)')
 endfunction
 

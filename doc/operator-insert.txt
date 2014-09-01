@@ -95,10 +95,6 @@ These behavior might not be different from all your expectations, but it is
 useful enough |v_b_I| and |v_b_A| for the purpose, I guess.
 
 ------------------------------------------------------------------------------
-Note that inserted texts can not include line-breaks. They will be removed
-before inserting a text.
-
-------------------------------------------------------------------------------
 The operators support |single-repeat| by dot |.| command. However the behavior
 would not be what you want when you use it with |gn| and |gN|. In that case
 try |<Plug>(gn-for-operator-insert-i)| and |<Plug>(gN-for-operator-insert-a)|,
