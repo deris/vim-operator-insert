@@ -27,11 +27,11 @@ set cpo&vim
 
 " Public API {{{1
 
-function! operator#insert#i(motion_wise)
+function! operator#insert#insert_i(motion_wise)
   return s:operator_insert_origin('i', a:motion_wise)
 endfunction
 
-function! operator#insert#a(motion_wise)
+function! operator#insert#insert_a(motion_wise)
   return s:operator_insert_origin('a', a:motion_wise)
 endfunction
 
@@ -181,7 +181,7 @@ function! s:operator_insert_origin(ai, motion_wise)
   if lt != s:null_pos && gt != s:null_pos
     call setpos("'<", lt)
     call setpos("'>", gt)
-    call s:set_info('visualmarks', s:null_region)
+    call s:set_info('visualmarks', copy(s:null_region))
   endif
 endfunction
 
@@ -229,15 +229,18 @@ function! s:insert_linewise(ai, insertion)
   endif
 
   " set marks as wrapping whole lines
+  let height = (len(split(a:insertion, "\<CR>", 1)) - 1)*(tail - head + 1)
   call setpos("'[", [0, head, 0, 0])
-  call setpos("']", [0, tail, col([tail, '$']), 0])
+  call setpos("']", [0, tail + height, col([tail + height, '$']), 0])
 
   " not required to store the target region in a linewise action
-  return s:null_region
+  return copy(s:null_region)
 endfunction
 
 function! s:insert_blockwise(ai, insertion)
   let processed = []
+  let height    = 0
+  let increment = len(split(a:insertion, "\<CR>", 1)) - 1
 
   " lines: [lnum, length]
   let lines = reverse(map(range(line("'["), line("']")),
@@ -250,10 +253,12 @@ function! s:insert_blockwise(ai, insertion)
         call cursor(line[0], col)
         execute "normal! i" . a:insertion
         let processed += [line[0]]
+        let height    += increment
       elseif line[1] == col - 1
         call cursor(line[0], col)
         execute "normal! a" . a:insertion
         let processed += [line[0]]
+        let height    += increment
       endif
     endfor
   else
@@ -263,18 +268,24 @@ function! s:insert_blockwise(ai, insertion)
         call cursor(line[0], col)
         execute "normal! a" . a:insertion
         let processed += [line[0]]
+        let height    += increment
       endif
     endfor
   endif
 
   " set marks for the topleft and bottomright edge of the processed region
   if processed != []
-    call setpos("'[", [0, processed[0], col("'["), 0])
-    call setpos("']", [0, processed[-1], col("']") - 1, 0])
+    if stridx(a:insertion, "\n") > -1
+      call setpos("'[", [0, processed[-1], col("'["), 0])
+      call setpos("']", [0, processed[0], col("']") - 1, 0])
+    else
+      call setpos("'[", [0, processed[-1], 0, 0])
+      call setpos("']", [0, processed[0] + height, col([processed[0] + height, '$']), 0])
+    endif
   endif
 
   " not required to store the target region in a blocwise action
-  return s:null_region
+  return copy(s:null_region)
 endfunction
 
 function! s:close_fold()
@@ -316,11 +327,11 @@ function! s:get_info(name)
     let b:operator_insert_info = {}
     let b:operator_insert_info.state = 0
     let b:operator_insert_info.last_insertion = ''
-    let b:operator_insert_info.last_target = s:null_region
+    let b:operator_insert_info.last_target = copy(s:null_region)
     let b:operator_insert_info.view = {}
     let b:operator_insert_info.opened_fold = []
     let b:operator_insert_info.highlight = []
-    let b:operator_insert_info.visualmarks = s:null_region
+    let b:operator_insert_info.visualmarks = copy(s:null_region)
   endif
   return b:operator_insert_info[a:name]
 endfunction
